@@ -8,8 +8,7 @@ import 'article_service.dart';
 
 class CommentService {
   // GET /articles/{articleId}/comments?limit=50
-  Future<List<Comment>> getComments(int articleId) async {
-    // TODO: GET komentar, lalu ubah body['data'] menjadi List<Comment>
+  Future<List<Comment>> getComments(dynamic articleId) async {
     final uri = Uri.parse('${ArticleService.baseUrl}/articles/$articleId/comments?limit=50');
 
     try {
@@ -17,24 +16,30 @@ class CommentService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        final List data = body['data'] as List;
-        return data.map((item) => Comment.fromJson(item)).toList();
+        final List data = body['data'] as List? ?? [];
+        final comments = data
+            .whereType<Map<String, dynamic>>()
+            .map((item) => Comment.fromJson(item))
+            .toList();
+
+        // Urutkan komentar dari yang paling baru
+        comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return comments;
       } else {
         throw ApiException('Gagal memuat komentar', response.statusCode);
       }
     } on SocketException {
-      throw ApiException('Tidak ada koneksi Internet');
+      throw ApiException('Tidak ada koneksi internet. Periksa jaringan Anda.');
+    } on http.ClientException {
+      throw ApiException('Gagal menghubungi server.');
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException('terjadi kesalah : $e ');
+      throw ApiException('Terjadi kesalahan: $e');
     }
-    // throw UnimplementedError('getComments belum dibuat');
   }
 
-  // POST /articles/{articleId}/comments — tidak perlu api key
-  Future<Comment> addComment(int articleId, String name, String content) async {
-    // TODO: http.post dengan header Content-Type dan body {'name': ..., 'content': ...}
-    // Hint: jangan lupa jsonEncode body-nya
+  // POST /articles/{articleId}/comments — kirim komentar baru
+  Future<Comment> addComment(dynamic articleId, String userName, String commentText) async {
     final uri = Uri.parse('${ArticleService.baseUrl}/articles/$articleId/comments');
 
     try {
@@ -42,24 +47,28 @@ class CommentService {
         uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'name': name,
-          'content': content,
+          'article_id': articleId,
+          'user_name': userName,
+          'name': userName,
+          'comment_text': commentText,
+          'content': commentText,
         }),
       );
 
+      final Map<String, dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
+
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final Map<String, dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
-        return Comment.fromJson(body['data']);
+        return Comment.fromJson(body['data'] ?? body);
       } else {
-        final Map<String, dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
         throw ApiException(body['message'] ?? 'Gagal mengirim komentar', response.statusCode);
       }
     } on SocketException {
-      throw ApiException('Tidak ada koneksi Internet');
+      throw ApiException('Tidak ada koneksi internet. Periksa jaringan Anda.');
+    } on http.ClientException {
+      throw ApiException('Gagal menghubungi server.');
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException('terjadi kesalah : $e ');
+      throw ApiException('Terjadi kesalahan: $e');
     }
-    // throw UnimplementedError('addComment belum dibuat');
   }
 }

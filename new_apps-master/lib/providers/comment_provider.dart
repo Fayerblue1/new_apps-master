@@ -5,10 +5,9 @@ import '../services/comment_service.dart';
 
 final commentServiceProvider = Provider((ref) => CommentService());
 
-// Komentar milik satu artikel (parameter: id artikel).
-final commentsProvider = FutureProvider.family<List<Comment>, int>((ref, articleId) {
-  // TODO: panggil getComments(articleId) dari commentServiceProvider
+// Komentar milik satu artikel berdasarkan articleId (diurutkan dari yang terbaru)
+final commentsProvider =
+    FutureProvider.family<List<Comment>, dynamic>((ref, articleId) {
   final service = ref.watch(commentServiceProvider);
   return service.getComments(articleId);
-  // throw UnimplementedError('commentsProvider belum dibuat');
 });

@@ -1,63 +1,109 @@
 import 'author.dart';
 
 class Article {
-  final int id;
+  final dynamic id;
   final String title;
   final String? summary;
-  final String? content;
-  final String? thumbnailUrl;
-  final int categoryId;
-  final String categoryName;
+  final String content;
+  final String? imageUrl;
+  final String category;
+  final String authorName;
+  final bool isBreaking;
+  final DateTime? createdAt;
+  final int? categoryId;
   final Author author;
 
   Article({
     required this.id,
     required this.title,
     this.summary,
-    this.content,
-    this.thumbnailUrl,
-    required this.categoryId,
-    this.categoryName = '',
-    required this.author,
-  });
+    required this.content,
+    String? imageUrl,
+    String? thumbnailUrl,
+    String? category,
+    String? authorName,
+    this.isBreaking = false,
+    this.createdAt,
+    this.categoryId,
+    Author? author,
+  })  : imageUrl = imageUrl ?? thumbnailUrl,
+        category = category ?? 'Umum',
+        authorName = authorName ?? author?.name ?? 'Redaksi',
+        author = author ??
+            Author(
+              id: 1,
+              name: authorName ?? 'Redaksi',
+              avatarUrl: null,
+            );
 
-  // JSON dari API -> objek Article
-  // Contoh JSON:
-  // {
-  //   "id": 5, "title": "...", "summary": "...", "content": "...",
-  //   "thumbnail_url": "https://...",
-  //   "category": { "id": 2, "name": "Olahraga" },
-  //   "author":   { "id": 2, "name": "Budi Santoso", ... }
-  // }
+  // Getter kompatibilitas kode lama
+  String? get thumbnailUrl => imageUrl;
+  String get categoryName => category;
+
   factory Article.fromJson(Map<String, dynamic> json) {
-    // TODO: kembalikan Article(...) dari json
-    // Hint: category ada di dalam objek -> json['category']['id']
-    // Hint: author juga objek -> pakai Author.fromJson(...)
+    // 1. Ambil category
+    final cat = json['category'];
+    String categoryStr = 'Umum';
+    int? catId;
+    if (cat is String) {
+      categoryStr = cat;
+    } else if (cat is Map) {
+      categoryStr = cat['name'] ?? 'Umum';
+      catId = cat['id'] is int ? cat['id'] : int.tryParse(cat['id']?.toString() ?? '');
+    }
+
+    // 2. Ambil author
+    final auth = json['author'];
+    String authorStr = json['author_name'] ?? 'Redaksi';
+    Author? authorObj;
+    if (auth is Map<String, dynamic>) {
+      authorObj = Author.fromJson(auth);
+      authorStr = auth['name'] ?? authorStr;
+    } else if (auth is String) {
+      authorStr = auth;
+    }
+
+    // 3. Ambil created_at / published_at
+    DateTime? parsedDate;
+    final dateRaw = json['created_at'] ?? json['published_at'];
+    if (dateRaw != null) {
+      parsedDate = DateTime.tryParse(dateRaw.toString());
+    }
+
+    // 4. Ambil image_url / thumbnail_url
+    final img = json['image_url'] ?? json['thumbnail_url'] ?? json['imageUrl'];
+
     return Article(
-      id: json['id'],
-      title: json['title'],
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
       summary: json['summary'],
-      content: json['content'],
-      thumbnailUrl: json['thumbnail_url'] ?? json['thumbnailUrl'],
-      categoryId: json['category']['id'],
-      categoryName: json['category']?['name'] ?? '',
-      author: Author.fromJson(json['author']),
+      content: json['content'] ?? json['summary'] ?? '',
+      imageUrl: img,
+      category: categoryStr,
+      authorName: authorStr,
+      isBreaking: json['is_breaking'] == true || json['isBreaking'] == true,
+      createdAt: parsedDate,
+      categoryId: json['category_id'] is int
+          ? json['category_id']
+          : (catId ?? 1),
+      author: authorObj,
     );
-    // throw UnimplementedError('Article.fromJson belum dibuat');
   }
 
-  // Objek Article -> body JSON untuk POST / PUT
   Map<String, dynamic> toJson() {
-    // TODO: kembalikan Map berisi: title, summary, content, thumbnail_url, category_id, author_id
-    // Hint: API minta 'author_id', bukan objek author.
     return {
+      'id': id,
       'title': title,
       'summary': summary,
       'content': content,
-      'thumbnail_url': thumbnailUrl,
-      'category_id': categoryId,
+      'image_url': imageUrl,
+      'thumbnail_url': imageUrl,
+      'category': category,
+      'category_id': categoryId ?? 1,
+      'author_name': authorName,
       'author_id': author.id,
+      'is_breaking': isBreaking,
+      'created_at': createdAt?.toIso8601String(),
     };
-    // throw UnimplementedError('Article.toJson belum dibuat');
   }
 }

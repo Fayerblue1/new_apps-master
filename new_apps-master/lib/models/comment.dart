@@ -1,27 +1,43 @@
 class Comment {
-  final int id;
-  final String name;
-  final String content;
+  final dynamic id;
+  final dynamic articleId;
+  final String userName;
+  final String commentText;
   final DateTime createdAt;
 
   Comment({
     required this.id,
-    required this.name,
-    required this.content,
+    this.articleId,
+    required this.userName,
+    required this.commentText,
     required this.createdAt,
   });
 
-  // Contoh JSON:
-  // { "id": 4, "name": "Putri", "content": "...", "created_at": "2026-10-11T04:15:00+00:00" }
+  // Getter kompatibilitas nama lama
+  String get name => userName;
+  String get content => commentText;
+
   factory Comment.fromJson(Map<String, dynamic> json) {
-    // TODO: kembalikan Comment(...) dari json
-    // Hint: created_at berupa String, ubah dengan DateTime.parse(...).toLocal()
     return Comment(
-      id: json['id'],
-      name: json['name'],
-      content: json['content'],
-      createdAt: DateTime.parse(json['created_at']).toLocal(),
+      id: json['id'] ?? '',
+      articleId: json['article_id'] ?? json['articleId'],
+      userName: json['user_name'] ?? json['userName'] ?? json['name'] ?? 'Anonim',
+      commentText: json['comment_text'] ?? json['commentText'] ?? json['content'] ?? '',
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'].toString())?.toLocal() ?? DateTime.now())
+          : DateTime.now(),
     );
-    // throw UnimplementedError('Comment.fromJson belum dibuat');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      if (articleId != null) 'article_id': articleId,
+      'user_name': userName,
+      'name': userName,
+      'comment_text': commentText,
+      'content': commentText,
+      'created_at': createdAt.toIso8601String(),
+    };
   }
 }

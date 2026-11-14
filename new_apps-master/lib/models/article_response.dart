@@ -1,7 +1,6 @@
 import 'article.dart';
 
-// Pembungkus response GET /articles:
-// { "success": true, "message": "OK", "data": [ {...}, {...} ] }
+// Pembungkus response GET /articles
 class ArticleResponse {
   final bool success;
   final String message;
@@ -14,16 +13,16 @@ class ArticleResponse {
   });
 
   factory ArticleResponse.fromJson(Map<String, dynamic> json) {
-    // TODO: kembalikan ArticleResponse(...)
-    // Hint: daftar artikel ada di json['data'] (List).
-    //       Ubah tiap item jadi Article dengan .map(...) lalu .toList()
+    final rawList = json['data'] ?? json['articles'] ?? [];
+    final List list = rawList is List ? rawList : [];
+
     return ArticleResponse(
-      success: json['success'],
-      message: json['message'],
-      articles: (json['data'] as List)
+      success: json['success'] ?? true,
+      message: json['message'] ?? 'OK',
+      articles: list
+          .whereType<Map<String, dynamic>>()
           .map((item) => Article.fromJson(item))
           .toList(),
     );
-    // throw UnimplementedError('ArticleResponse.fromJson belum dibuat');
   }
 }
